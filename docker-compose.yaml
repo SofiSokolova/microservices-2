@@ -1,0 +1,94 @@
+version: '3.8'
+services:
+
+  #
+  # Application
+  #
+
+  app:
+    build:
+      context: packages/main
+      dockerfile: Dockerfile
+    image: api
+    command: sh -c "npm i && npm run start:debug"
+    ports:
+      - '${API_PORT_EXT:-3001}:3001'
+      - '${API_PORT_DEBUG:-9229}:9229'
+    environment:
+      - DEBUG_PORT=9229
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    env_file:
+      - packages/main/.env
+    depends_on:
+      - redis
+      - postgres
+
+    #
+    # Microservice
+    #
+
+  ms-app:
+    build:
+      context: packages/main
+      dockerfile: Dockerfile
+    image: ms-api
+    command: sh -c "npm i && npm run start:debug"
+    ports:
+      - '${API_PORT_EXT:-4000}:4000'
+      - '${API_PORT_DEBUG:-2000}:2000'
+    environment:
+      - DEBUG_PORT=2000
+    volumes:
+      - ./:/ms-app
+      - /ms-app/node_modules
+    env_file:
+      - packages/microservice-email/.env
+    depends_on:
+      - postgres
+      - rabbitmq
+
+  #
+  # Services
+  #
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    env_file:
+      - packages/main/.env
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq/data
+
+  redis:
+    image: 'bitnami/redis:latest'
+    environment:
+      # ALLOW_EMPTY_PASSWORD is recommended only for development.
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+    ports:
+      - '${REDIS_PORT_EXT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+
+  postgres:
+    image: postgres
+    restart: always
+    env_file:
+      - packages/main/.env
+    ports:
+      - '${POSTGRES_PORT_EXT:-5432}:5432'
+    volumes:
+      - postgres:/var/lib/postgresql/data
+
+volumes:
+  postgres:
+    external: true
+  redis_data:
+    external: true
+  rabbitmq_data:
+    external: true
