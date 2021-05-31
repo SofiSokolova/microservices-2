@@ -1,10 +1,10 @@
 import { NestFactory } from '@nestjs/core';
-import { EmailModule } from './app.module';
+import { AppModule } from './app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
-    EmailModule,
+    AppModule,
     {
       transport: Transport.RMQ,
       options: {
@@ -34,4 +34,5 @@ async function bootstrap() {
   );*/
   await app.listen(() => console.log('Microservice is listening'));
 }
+
 bootstrap();
